@@ -1,9 +1,6 @@
 scrape_configs:
-  - job_name: 'sample_monitoring'
+  - job_name: 'spring-boot-app'
     scrape_interval: 5s
     metrics_path: '/actuator/prometheus'
     static_configs:
-      # Windows
-      #- targets: ['host.docker.internal:8080']
-      # Linux
-      - targets: ['172.17.0.1:8080']
+      - targets: ['app:8080']

@@ -21,6 +21,8 @@ public class ProductService {
     public ProductEntity create(ProductEntity product) {
         log.debug("Creating product: {}", product.getName());
         ProductEntity saved = repository.save(product);
+        log.debug("Created product: id {} name {} price {}",
+                product.getId(), product.getName(), product.getPrice());
         log.info("Product created with id {}", saved.getId());
         return saved;
     }
@@ -74,6 +76,7 @@ public class ProductService {
                     log.debug("Thread {} finished with {}", thread, result);
                 });
 
+        log.trace("Exiting heavy load");
         log.info("Heavy load completed");
     }
 }
