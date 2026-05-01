@@ -1,0 +1,67 @@
+name: Build and Release  # Имя вашего пайплайна
+
+# Когда запускать: на каждый пуш (push) в ветку master и на каждый Pull Request в неё же
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  # Задача "build" — собирает, тестирует, анализирует
+  build:
+    runs-on: ubuntu-latest  # Виртуальная машина, где всё будет выполняться
+    steps:
+      # Шаг 1: Скачать код из репозитория
+      - uses: actions/checkout@v4
+
+      # Шаг 2: Установить нужную версию Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto' # Можно и другую, например, 'temurin'
+
+      # Шаг 3: Кэширование зависимостей Maven (чтобы не качать их с нуля каждый раз)
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+      # Шаг 4: Сборка проекта и прогон тестов (флаги -B (batch) и -e (error) для читаемости)
+      - name: Build and Test
+        run: mvn clean verify -B -e
+
+      # Шаг 5: Отправка отчёта о покрытии в Coveralls
+      - name: Coveralls
+        run: mvn coveralls:report -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }}
+
+      # Шаг 6: Сборка JAR-файла для релиза
+      - name: Package JAR
+        run: mvn package -DskipTests
+
+      # Шаг 7: Залить итоговый JAR как артефакт, чтобы к нему можно было обратиться из других задач
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+
+  # Задача "release" — создаёт релиз на GitHub
+  release:
+    needs: build  # Эта задача запустится ТОЛЬКО после успешного выполнения "build"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' # Только при пуше в мастер
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/*.jar
+          tag_name: v${{ github.run_number }} # Автоматический тег, например v1, v2, v3...
+          generate_release_notes: true
