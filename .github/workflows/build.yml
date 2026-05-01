@@ -35,7 +35,9 @@ jobs:
 
       # Шаг 5: Отправка отчёта о покрытии в Coveralls
       - name: Coveralls
-        run: mvn coveralls:report -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }}
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        run: mvn coveralls:report
 
       # Шаг 6: Сборка JAR-файла для релиза
       - name: Package JAR
